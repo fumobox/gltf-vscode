@@ -3,32 +3,28 @@ import { GltfPreview } from './gltfPreview';
 import { GltfInspectData } from './gltfInspectData';
 import { GltfOutline } from './gltfOutline';
 
-function isGltfFile(editor: vscode.TextEditor | undefined): boolean {
-    return editor && editor.document.fileName.toLowerCase().endsWith('.gltf');
-}
-
 export class GltfWindow {
-    private _gltfPreview: GltfPreview;
-    private _gltfInspectData: GltfInspectData;
-    private _gltfOutline: GltfOutline;
+    private _vtoolPreview: GltfPreview;
+    private _vtoolInspectData: GltfInspectData;
+    private _vtoolOutline: GltfOutline;
     private _activeTextEditor: vscode.TextEditor;
     private _onDidChangeActiveTextEditor: vscode.EventEmitter<vscode.TextEditor | undefined> = new vscode.EventEmitter<vscode.TextEditor | undefined>();
 
     constructor(context: vscode.ExtensionContext) {
-        this._gltfPreview = new GltfPreview(context);
+        this._vtoolPreview = new GltfPreview(context);
 
-        this._gltfOutline = new GltfOutline(context, this);
-        vscode.window.registerTreeDataProvider('gltfOutline', this._gltfOutline);
+        this._vtoolOutline = new GltfOutline(context, this);
+        vscode.window.registerTreeDataProvider('vtoolOutline', this._vtoolOutline);
 
-        this._gltfInspectData = new GltfInspectData(context, this);
-        this._gltfInspectData.setTreeView(vscode.window.createTreeView('gltfInspectData', { treeDataProvider: this._gltfInspectData }));
+        this._vtoolInspectData = new GltfInspectData(context, this);
+        this._vtoolInspectData.setTreeView(vscode.window.createTreeView('vtoolInspectData', { treeDataProvider: this._vtoolInspectData }));
 
         vscode.window.onDidChangeActiveTextEditor(() => {
             // Wait a frame before updating to ensure all window states are updated.
             setImmediate(() => this.update());
         });
 
-        this._gltfPreview.onDidChangeActivePanel(() => {
+        this._vtoolPreview.onDidChangeActivePanel(() => {
             // Wait a frame before updating to ensure all window states are updated.
             setImmediate(() => this.update());
         });
@@ -44,15 +40,15 @@ export class GltfWindow {
     }
 
     public get preview(): GltfPreview {
-        return this._gltfPreview;
+        return this._vtoolPreview;
     }
 
     public get inspectData(): GltfInspectData {
-        return this._gltfInspectData;
+        return this._vtoolInspectData;
     }
 
     public get outline(): GltfOutline {
-        return this._gltfOutline;
+        return this._vtoolOutline;
     }
 
     /**
@@ -61,25 +57,29 @@ export class GltfWindow {
     public readonly onDidChangeActiveTextEditor = this._onDidChangeActiveTextEditor.event;
 
     private update() {
-        let gltfPreviewActive = false;
-        let gltfFileActive = false;
+        let vToolPreviewActive = false;
+        let vToolFileActive = false;
 
-        let activeTextEditor = this._gltfPreview.activePanel && this._gltfPreview.activePanel.textEditor;
+        let activeTextEditor = this._vtoolPreview.activePanel && this._vtoolPreview.activePanel.textEditor;
         if (activeTextEditor) {
-            gltfPreviewActive = true;
+            vToolPreviewActive = true;
         }
-        else if (isGltfFile(vscode.window.activeTextEditor)) {
+        else if (this.isGltfFile(vscode.window.activeTextEditor)) {
             activeTextEditor = vscode.window.activeTextEditor;
-            gltfFileActive = true;
+            vToolFileActive = true;
         }
 
-        vscode.commands.executeCommand('setContext', 'gltfPreviewActive', gltfPreviewActive);
-        vscode.commands.executeCommand('setContext', 'gltfFileActive', gltfFileActive);
-        vscode.commands.executeCommand('setContext', 'gltfActive', gltfPreviewActive || gltfFileActive);
+        vscode.commands.executeCommand('setContext', 'vToolPreviewActive', vToolPreviewActive);
+        vscode.commands.executeCommand('setContext', 'vToolFileActive', vToolFileActive);
+        vscode.commands.executeCommand('setContext', 'vToolActive', vToolPreviewActive || vToolFileActive);
 
         if (this._activeTextEditor !== activeTextEditor) {
             this._activeTextEditor = activeTextEditor;
             this._onDidChangeActiveTextEditor.fire(activeTextEditor);
         }
-    };
+    }
+
+    private isGltfFile(editor: vscode.TextEditor | undefined): boolean {
+        return editor && (editor.document.fileName.toLowerCase().endsWith('.vrmgltf') || editor.document.fileName.toLowerCase().endsWith('.vcigltf'));
+    }
 }

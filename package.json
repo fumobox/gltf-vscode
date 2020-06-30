@@ -1,23 +1,22 @@
 {
-    "name": "gltf-vscode",
-    "displayName": "glTF Tools",
-    "description": "Tools for glTF and GLB 3D models",
-    "version": "2.2.6",
-    "publisher": "cesium",
+    "name": "vtool",
+    "displayName": "VRM/VCI Tools",
+    "description": "Tools for VRM and VCI 3D models",
+    "version": "1.0.0",
+    "publisher": "fumobox",
     "license": "Apache-2.0",
     "repository": {
-        "url": "https://github.com/AnalyticalGraphicsInc/gltf-vscode"
+        "url": "https://github.com/fumobox/vtool"
     },
     "keywords": [
-        "glTF",
-        "glb",
-        "Khronos",
+        "VRM",
+        "VCI",
         "3D",
         "model"
     ],
     "icon": "images/gltf.png",
     "engines": {
-        "vscode": "^1.30.0"
+        "vscode": "^1.40.0"
     },
     "categories": [
         "Formatters",
@@ -29,22 +28,24 @@
         "theme": "dark"
     },
     "activationEvents": [
-        "onView:gltfOutline",
+        "onView:vtoolOutline",
         "onLanguage:json",
-        "onCommand:gltf.inspectData",
-        "onCommand:gltf.importUri",
-        "onCommand:gltf.exportUri",
-        "onCommand:gltf.previewModel",
-        "onCommand:gltf.validateFile",
-        "onCommand:gltf.exportGlbFile",
-        "onCommand:gltf.importGlbFile"
+        "onCommand:vtool.inspectData",
+        "onCommand:vtool.importUri",
+        "onCommand:vtool.exportUri",
+        "onCommand:vtool.previewModel",
+        "onCommand:vtool.validateFile",
+        "onCommand:vtool.exportVrmFile",
+        "onCommand:vtool.exportVciFile",
+        "onCommand:vtool.importVrmFile",
+        "onCommand:vtool.importVciFile"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "configuration": {
-            "title": "glTF configuration",
+            "title": "VTool configuration",
             "properties": {
-                "glTF.defaultV1Engine": {
+                "vtool.defaultV1Engine": {
                     "type": "string",
                     "default": "Cesium",
                     "enum": [
@@ -54,7 +55,7 @@
                     ],
                     "description": "The default 3D engine that will be used when previewing a glTF 1.0 model.  You can always change the current engine within the preview pane."
                 },
-                "glTF.defaultV2Engine": {
+                "vtool.defaultV2Engine": {
                     "type": "string",
                     "default": "Babylon.js",
                     "enum": [
@@ -64,56 +65,56 @@
                     ],
                     "description": "The default 3D engine that will be used when previewing a glTF 2.0 model.  You can always change the current engine within the preview pane."
                 },
-                "glTF.Babylon.environment": {
+                "vtool.Babylon.environment": {
                     "type": "string",
                     "default": "{extensionRootPath}environments/babylon/countrySpecularHDR.dds",
                     "description": "The path to a BabylonJS-ready DDS environment file.  See: https://doc.babylonjs.com/how_to/physically_based_rendering#creating-a-dds-environment-file-from-an-hdr-image"
                 },
-                "glTF.Three.environment": {
+                "vtool.Three.environment": {
                     "type": "string",
                     "default": "{extensionRootPath}environments/threejs/Park2/{face}.jpg",
                     "description": "The path to a set of environment cube faces usable by ThreeJS.  Use {face} for the face name, and six files must exist with the following face names: posx, negx, posy, negy, posz, and negz."
                 },
-                "glTF.showToolbar3D": {
+                "vtool.showToolbar3D": {
                     "type": "boolean",
                     "default": true,
                     "description": "Show a button on the toolbar to activate the 3D Preview window."
                 },
-                "glTF.alwaysOverwriteDefaultFilename": {
+                "vtool.alwaysOverwriteDefaultFilename": {
                     "type": "boolean",
                     "default": false,
                     "description": "When creating a filesystem file from glTF or GLB import or export should a prompt be shown to select the result filename?"
                 },
-                "glTF.expandOutlineWithSelection": {
+                "vtool.expandOutlineWithSelection": {
                     "type": "boolean",
                     "default": false,
                     "description": "When the editor selection changes the glTF outline will expand to include the current selection."
                 },
-                "glTF.Validation.enable": {
+                "vtool.Validation.enable": {
                     "scope": "resource",
                     "type": "boolean",
                     "default": true,
                     "description": "When true, automatically run the glTF Validator and report any found issues to the document problems window."
                 },
-                "glTF.Validation.debounce": {
+                "vtool.Validation.debounce": {
                     "scope": "resource",
                     "type": "number",
                     "default": 500,
                     "description": "The number of milliseconds to wait for multiple requests to re-validate a glTF document."
                 },
-                "glTF.Validation.maxIssues": {
+                "vtool.Validation.maxIssues": {
                     "scope": "resource",
                     "type": "number",
                     "default": 200,
                     "description": "Controls the maximum number of issues reported by the glTF Validator."
                 },
-                "glTF.Validation.ignoredIssues": {
+                "vtool.Validation.ignoredIssues": {
                     "scope": "resource",
                     "type": "array",
                     "default": [],
                     "description": "Array of issue codes to ignore during validation.  See https://github.com/KhronosGroup/glTF-Validator/blob/master/ISSUES.md"
                 },
-                "glTF.Validation.severityOverrides": {
+                "vtool.Validation.severityOverrides": {
                     "scope": "resource",
                     "type": "object",
                     "default": {},
@@ -123,187 +124,202 @@
         },
         "commands": [
             {
-                "command": "gltf.inspectData",
-                "title": "glTF: Inspect Data"
+                "command": "vtool.inspectData",
+                "title": "VTool: Inspect Data"
             },
             {
-                "command": "gltf.importUri",
-                "title": "glTF: Import file as Data URI"
+                "command": "vtool.importUri",
+                "title": "VTool: Import file as Data URI"
             },
             {
-                "command": "gltf.exportUri",
-                "title": "glTF: Export a Data URI to a file"
+                "command": "vtool.exportUri",
+                "title": "VTool: Export a Data URI to a file"
             },
             {
-                "command": "gltf.previewModel",
-                "title": "glTF: Preview 3D Model",
+                "command": "vtool.previewModel",
+                "title": "VTool: Preview 3D Model (VRM/VCI)",
                 "icon": {
                     "dark": "./resources/dark/scene.svg",
                     "light": "./resources/light/scene.svg"
                 }
             },
             {
-                "command": "gltf.enableDebugMode",
-                "title": "glTF: Enable Debug Mode",
+                "command": "vtool.enableDebugMode",
+                "title": "VTool: Enable Debug Mode",
                 "icon": {
                     "dark": "./resources/dark/debug-disabled.svg",
                     "light": "./resources/light/debug-disabled.svg"
                 }
             },
             {
-                "command": "gltf.disableDebugMode",
-                "title": "glTF: Disable Debug Mode",
+                "command": "vtool.disableDebugMode",
+                "title": "VTool: Disable Debug Mode",
                 "icon": {
                     "dark": "./resources/dark/debug-enabled.svg",
                     "light": "./resources/light/debug-enabled.svg"
                 }
             },
             {
-                "command": "gltf.validateFile",
-                "title": "glTF: Validate a GLB or GLTF file"
+                "command": "vtool.validateFile",
+                "title": "VTool: Validate a VRM or VCI file"
             },
             {
-                "command": "gltf.exportGlbFile",
-                "title": "glTF: Export to GLB (Binary file)"
+                "command": "vtool.exportVrmFile",
+                "title": "VTool: Export to VRM (Binary file)"
             },
             {
-                "command": "gltf.importGlbFile",
-                "title": "glTF: Import from GLB"
+                "command": "vtool.exportVciFile",
+                "title": "VTool: Export to VCI (Binary file)"
             },
             {
-                "command": "gltf.importAnimation",
-                "title": "glTF: Import animation"
+                "command": "vtool.importAnimation",
+                "title": "VTool: Import animation"
             },
             {
-                "command": "gltf.exportAnimation",
-                "title": "glTF: Export animation"
+                "command": "vtool.exportAnimation",
+                "title": "VTool: Export animation"
             },
             {
-                "command": "gltfInspectData.copyAll",
+                "command": "vtoolInspectData.copyAll",
                 "title": "Copy All"
             },
             {
-                "command": "gltfInspectData.copy",
+                "command": "vtoolInspectData.copy",
                 "title": "Copy"
+            },
+            {
+                "command": "vtool.importVrmFile",
+                "title": "VTool: Import from VRM"
+            },
+            {
+                "command": "vtool.importVciFile",
+                "title": "VTool: Import from VCI"
             }
         ],
         "keybindings": [
             {
-                "command": "gltf.inspectData",
+                "command": "vtool.inspectData",
                 "key": "alt+d",
                 "mac": "alt+d",
-                "when": "editorTextFocus && gltfFileActive"
+                "when": "editorTextFocus && vToolFileActive"
             },
             {
-                "command": "gltf.previewModel",
+                "command": "vtool.previewModel",
                 "key": "alt+g",
                 "mac": "alt+g",
-                "when": "editorTextFocus && gltfFileActive"
+                "when": "editorTextFocus && vToolFileActive"
             },
             {
-                "command": "gltf.exportGlbFile",
-                "key": "alt+shift+s e",
-                "mac": "alt+shift+s e",
-                "when": "editorTextFocus && gltfFileActive"
-            },
-            {
-                "command": "gltf.importAnimation",
+                "command": "vtool.importAnimation",
                 "key": "alt+i",
                 "mac": "alt+i",
-                "when": "editorTextFocus && gltfFileActive"
+                "when": "editorTextFocus && vToolFileActive"
             },
             {
-                "command": "gltf.exportAnimation",
+                "command": "vtool.exportAnimation",
                 "key": "alt+o",
                 "mac": "alt+o",
-                "when": "editorTextFocus && gltfFileActive"
+                "when": "editorTextFocus && vToolFileActive"
             }
         ],
         "menus": {
             "explorer/context": [
                 {
-                    "command": "gltf.importGlbFile",
-                    "group": "glTF"
+                    "command": "vtool.importVrmFile",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.validateFile",
-                    "group": "glTF"
+                    "command": "vtool.importVciFile",
+                    "group": "vtool"
+                },
+                {
+                    "command": "vtool.validateFile",
+                    "group": "vtool"
                 }
             ],
             "editor/context": [
                 {
-                    "command": "gltf.previewModel",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.previewModel",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.inspectData",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.inspectData",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 }
             ],
             "editor/title": [
                 {
-                    "command": "gltf.previewModel",
-                    "when": "gltfFileActive && gltfShowToolbar3D",
+                    "command": "vtool.previewModel",
+                    "when": "vToolFileActive && vtoolShowToolbar3D",
                     "group": "navigation"
                 },
                 {
-                    "command": "gltf.enableDebugMode",
-                    "when": "gltfPreviewActive && !gltfDebugActive",
+                    "command": "vtool.enableDebugMode",
+                    "when": "vToolPreviewActive && !vToolDebugActive",
                     "group": "navigation"
                 },
                 {
-                    "command": "gltf.disableDebugMode",
-                    "when": "gltfPreviewActive && gltfDebugActive",
+                    "command": "vtool.disableDebugMode",
+                    "when": "vToolPreviewActive && vToolDebugActive",
                     "group": "navigation"
                 }
             ],
             "editor/title/context": [
                 {
-                    "command": "gltf.previewModel",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.previewModel",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.inspectData",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.inspectData",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.importUri",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.importUri",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.exportUri",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.exportUri",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.exportGlbFile",
-                    "when": "gltfFileActive",
-                    "group": "glTF"
+                    "command": "vtool.exportVrmFile",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.importGlbFile",
-                    "group": "glTF"
+                    "command": "vtool.exportVciFile",
+                    "when": "vToolFileActive",
+                    "group": "vtool"
                 },
                 {
-                    "command": "gltf.validateFile",
-                    "group": "glTF"
+                    "command": "vtool.importVrmFile",
+                    "group": "vtool"
+                },
+                {
+                    "command": "vtool.importVciFile",
+                    "group": "vtool"
+                },
+                {
+                    "command": "vtool.validateFile",
+                    "group": "vtool"
                 }
             ],
             "view/title": [
                 {
-                    "command": "gltfInspectData.copyAll",
-                    "when": "view == gltfInspectData"
+                    "command": "vtoolInspectData.copyAll",
+                    "when": "view == vtoolInspectData"
                 }
             ],
             "view/item/context": [
                 {
-                    "command": "gltfInspectData.copy",
-                    "when": "view == gltfInspectData"
+                    "command": "vtoolInspectData.copy",
+                    "when": "view == vtoolInspectData"
                 }
             ]
         },
@@ -311,36 +327,41 @@
             {
                 "id": "json",
                 "extensions": [
-                    ".gltf"
+                    ".vrmgltf",
+                    ".vcigltf"
                 ]
             }
         ],
         "jsonValidation": [
             {
-                "fileMatch": "*.gltf",
+                "fileMatch": "*.vrmgltf",
+                "url": "./schemas/glTF.chooser.schema.json"
+            },
+            {
+                "fileMatch": "*.vcigltf",
                 "url": "./schemas/glTF.chooser.schema.json"
             }
         ],
         "viewsContainers": {
             "activitybar": [
                 {
-                    "id": "gltf",
-                    "title": "glTF",
+                    "id": "vtool",
+                    "title": "vtool",
                     "icon": "resources/dark/tf-logo.svg"
                 }
             ]
         },
         "views": {
-            "gltf": [
+            "vtool": [
                 {
-                    "id": "gltfOutline",
+                    "id": "vtoolOutline",
                     "name": "Outline",
-                    "when": "gltfActive"
+                    "when": "vToolActive"
                 },
                 {
-                    "id": "gltfInspectData",
+                    "id": "vtoolInspectData",
                     "name": "Inspect Data",
-                    "when": "gltfActive"
+                    "when": "vToolActive"
                 }
             ]
         }
@@ -375,6 +396,7 @@
         "gltf-validator": "2.0.0-dev.2.7",
         "json-source-map": "0.4.0",
         "sprintf-js": "1.1.1",
+        "tslint": "^6.1.2",
         "vscode-languageclient": "^3.5.1"
     }
 }

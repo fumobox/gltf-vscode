@@ -26,14 +26,14 @@ function messageLabel(howMany: Number, name: string) {
 }
 
 export async function validate(sourceFilename: string) {
-    if (typeof sourceFilename == 'undefined') {
+    if (typeof sourceFilename === 'undefined') {
         return;
     }
     if (!fs.existsSync(sourceFilename)) {
         throw new Error('File not found.');
     }
 
-    const currentSettings: ValidatorSettings = vscode.workspace.getConfiguration('glTF').get('Validation');
+    const currentSettings: ValidatorSettings = vscode.workspace.getConfiguration('vtool').get('Validation');
 
     const gltfData = fs.readFileSync(sourceFilename);
     const baseName = path.basename(sourceFilename);
@@ -57,7 +57,7 @@ export async function validate(sourceFilename: string) {
             }),
     });
 
-    const useSaveAs = !vscode.workspace.getConfiguration('glTF').get('alwaysOverwriteDefaultFilename');
+    const useSaveAs = !vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename');
     const SaveReport = useSaveAs ? SaveReportAs : OverwriteReport;
 
     //

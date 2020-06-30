@@ -128,7 +128,7 @@ export class GltfPreview extends ContextBase {
                 activePanel.webview.postMessage({ command: 'updateDebugMode' });
             }
             else {
-                vscode.commands.executeCommand('setContext', 'gltfDebugActive', false);
+                vscode.commands.executeCommand('setContext', 'vToolDebugActive', false);
             }
         }
     }
@@ -171,7 +171,7 @@ export class GltfPreview extends ContextBase {
                 const pointer = panel._jsonMap.pointers[message.jsonPointer];
                 const document = panel.textEditor.document;
                 const range = new vscode.Range(document.positionAt(pointer.value.pos), document.positionAt(pointer.valueEnd.pos));
-                vscode.commands.executeCommand('gltf.openGltfSelection', range);
+                vscode.commands.executeCommand('vtool.openGltfSelection', range);
                 break;
             }
             case 'setContext': {
@@ -198,7 +198,7 @@ export class GltfPreview extends ContextBase {
     }
 
     private formatHtml(gltfMajorVersion: number, gltfContent: string, gltfRootPath: string, gltfFileName: string, defaultBabylonReflection: string, defaultThreeReflection: string): string {
-        const defaultEngine = vscode.workspace.getConfiguration('glTF').get('defaultV' + gltfMajorVersion + 'Engine');
+        const defaultEngine = vscode.workspace.getConfiguration('vtool').get('defaultV' + gltfMajorVersion + 'Engine');
 
         const dracoLoaderPath = this.extensionRootPath + 'engines/Draco/draco_decoder.js';
         const dracoLoaderWasmPath = this.extensionRootPath + 'engines/Draco/draco_decoder.wasm';

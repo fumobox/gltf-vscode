@@ -140,7 +140,7 @@ function initPreview()
                         activeView.disableDebugMode();
                         mainUI.style.display = 'block';
                     }
-                    mainViewModel.setContext('gltfDebugActive', activeView.isDebugModeEnabled());
+                    mainViewModel.setContext('vToolDebugActive', activeView.isDebugModeEnabled());
                 }
                 else {
                     mainViewModel.showWarningMessage('Only Babylon.js supports debug mode');
@@ -149,7 +149,7 @@ function initPreview()
             }
             case 'updateDebugMode': {
                 if (mainViewModel.selectedEngine().name === 'Babylon.js') {
-                    mainViewModel.setContext('gltfDebugActive', activeView.isDebugModeEnabled());
+                    mainViewModel.setContext('vToolDebugActive', activeView.isDebugModeEnabled());
                 }
                 break;
             }

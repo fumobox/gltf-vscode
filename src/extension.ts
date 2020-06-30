@@ -65,10 +65,10 @@ function tryGetCurrentJsonPointer(map) {
 }
 
 function configurationChanged() {
-    const config = vscode.workspace.getConfiguration('glTF');
+    const config = vscode.workspace.getConfiguration('vtool');
     const showToolbar3D = config.get('showToolbar3D');
 
-    vscode.commands.executeCommand('setContext', 'gltfShowToolbar3D', showToolbar3D);
+    vscode.commands.executeCommand('setContext', 'vtoolShowToolbar3D', showToolbar3D);
 }
 
 // This method activates the language server, to run the glTF Validator.
@@ -76,14 +76,14 @@ export function activateServer(context: vscode.ExtensionContext) {
     // The server is implemented in node
     let serverModule = context.asAbsolutePath(path.join('server', 'server.js'));
     // The debug options for the server
-    let debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
+    let debugOptions = { execArgv: ["--nolazy", "--inspect=6010"] };
 
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
     let serverOptions: ServerOptions = {
         run: { module: serverModule, transport: TransportKind.ipc },
         debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-    }
+    };
 
     // Options to control the language client
     let clientOptions: LanguageClientOptions = {
@@ -91,14 +91,14 @@ export function activateServer(context: vscode.ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'json' }],
         synchronize: {
             // Synchronize the setting section 'glTF' to the server
-            configurationSection: 'glTF',
+            configurationSection: 'vtool',
             // Notify the server about file changes to '.clientrc files contain in the workspace
             fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
         }
-    }
+    };
 
     // Create the language client and start the client.
-    let disposable = new LanguageClient('gltfLanguageServer', 'glTF Language Server', serverOptions, clientOptions).start();
+    let disposable = new LanguageClient('vtoolLanguageServer', 'VTool Language Server', serverOptions, clientOptions).start();
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
@@ -121,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register a preview for dataURIs in the glTF file.
     const dataPreviewProvider = new DataUriTextDocumentContentProvider(context);
-    const dataPreviewRegistration = vscode.workspace.registerTextDocumentContentProvider('gltf-dataUri', dataPreviewProvider);
+    const dataPreviewRegistration = vscode.workspace.registerTextDocumentContentProvider('vtool-dataUri', dataPreviewProvider);
     context.subscriptions.push(dataPreviewRegistration);
 
     // Commands are registered in 2 to 3 places in the package.json file:
@@ -129,7 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
     //
     // Inspect the contents of the current json pointer in the glTF.
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.inspectData', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.inspectData', async () => {
         if (!checkValidEditor()) {
             return;
         }
@@ -152,7 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (!isImage && !isShader && !isAccessor && !isMeshPrimitive) {
             vscode.window.showErrorMessage('This feature currently works only with accessors, images, shaders, and mesh primitives.');
-            console.log('gltf-vscode: No preview for: ' + jsonPointer);
+            console.log('vtool: No preview for: ' + jsonPointer);
             return;
         }
 
@@ -186,12 +186,12 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Used by a TreeItem to change the behavior of expand and collapse.
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.noop', () => { }));
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.noop', () => { }));
 
     //
     // Import a filename URI into a dataURI.
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.importUri', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.importUri', () => {
         if (!checkValidEditor()) {
             return;
         }
@@ -252,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('File saved: ' + pathFilename);
     }
 
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.exportUri', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.exportUri', async () => {
         if (!checkValidEditor()) {
             return;
         }
@@ -281,14 +281,14 @@ export function activate(context: vscode.ExtensionContext) {
             let extension;
             let mimeType = '';
             if (mimeTypePos > 0) {
-                mimeType = dataUri.substring(5, mimeTypePos)
+                mimeType = dataUri.substring(5, mimeTypePos);
                 extension = guessFileExtension(mimeType);
                 guessName += extension;
             }
             let pathGuessName = path.join(path.dirname(activeTextEditor.document.fileName), guessName);
 
             const pointer = map.pointers[bestKey + '/uri'];
-            if (!vscode.workspace.getConfiguration('glTF').get('alwaysOverwriteDefaultFilename')) {
+            if (!vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename')) {
                 let options: vscode.SaveDialogOptions = {
                     defaultUri: vscode.Uri.file(pathGuessName),
                     filters: {
@@ -312,59 +312,9 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     //
-    // Export the whole file and its dependencies to a binary GLB file.
-    //
-    context.subscriptions.push(vscode.commands.registerTextEditorCommand('gltf.exportGlbFile', async (te, t) => {
-        if (!checkValidEditor()) {
-            return;
-        }
-
-        let gltfContent = te.document.getText();
-        let gltf: GLTF2.GLTF;
-        try {
-            gltf = JSON.parse(gltfContent);
-        } catch (ex) {
-            vscode.window.showErrorMessage(ex.toString());
-            return;
-        }
-        if (!gltf || !gltf.asset || !gltf.asset.version || gltf.asset.version[0] !== '2') {
-            vscode.window.showErrorMessage('Error: Only glTF 2.0 is supported for GLB export.');
-            return;
-        }
-
-        let editor = vscode.window.activeTextEditor;
-        let glbPath = editor.document.uri.fsPath.replace('.gltf', '.glb');
-        if (!vscode.workspace.getConfiguration('glTF').get('alwaysOverwriteDefaultFilename')) {
-            const options: vscode.SaveDialogOptions = {
-                defaultUri: vscode.Uri.file(glbPath),
-                filters: {
-                    'Binary glTF': ['glb'],
-                    'All files': ['*']
-                }
-            };
-            let uri = await vscode.window.showSaveDialog(options);
-            if (uri !== undefined) {
-                try {
-                    ConvertToGLB(gltf, editor.document.uri.fsPath, uri.fsPath);
-                    vscode.window.showInformationMessage('Glb exported as: ' + uri.fsPath);
-                } catch (ex) {
-                    vscode.window.showErrorMessage(ex.toString());
-                }
-            }
-        } else {
-            try {
-                ConvertToGLB(gltf, editor.document.uri.fsPath, glbPath);
-                vscode.window.showInformationMessage('Glb exported as: ' + glbPath);
-            } catch (ex) {
-                vscode.window.showErrorMessage(ex.toString());
-            }
-        }
-    }));
-
-    //
     // Preview a glTF model.
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.previewModel', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.previewModel', () => {
         if (!checkValidEditor()) {
             return;
         }
@@ -375,12 +325,12 @@ export function activate(context: vscode.ExtensionContext) {
     //
     // Enable/Disable glTF debug mode.
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.enableDebugMode', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.enableDebugMode', () => {
         if (gltfWindow.preview.activePanel) {
             gltfWindow.preview.activePanel.webview.postMessage({ command: 'enableDebugMode' });
         }
     }));
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.disableDebugMode', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.disableDebugMode', () => {
         if (gltfWindow.preview.activePanel) {
             gltfWindow.preview.activePanel.webview.postMessage({ command: 'disableDebugMode' });
         }
@@ -389,85 +339,21 @@ export function activate(context: vscode.ExtensionContext) {
     //
     // Register glTF Tree View
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.openGltfSelection', range => {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.openGltfSelection', range => {
         gltfWindow.outline.select(range);
-    }));
-
-    //
-    // Import of a GLB file and writing out its various chunks.
-    //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.importGlbFile', async (fileUri) => {
-
-        if (typeof fileUri == 'undefined' || !(fileUri instanceof vscode.Uri) || !fileUri.fsPath.endsWith('.glb')) {
-            if ((vscode.window.activeTextEditor !== undefined) &&
-                (vscode.window.activeTextEditor.document.uri.fsPath.endsWith('.glb'))) {
-                fileUri = vscode.window.activeTextEditor.document.uri;
-            } else {
-                const options: vscode.OpenDialogOptions = {
-                    canSelectMany: false,
-                    openLabel: 'Import',
-                    filters: {
-                        'Binary glTF': ['glb'],
-                        'All files': ['*']
-                    }
-                };
-
-                let openUri = await vscode.window.showOpenDialog(options);
-                if (openUri && openUri[0]) {
-                    fileUri = openUri[0];
-                } else {
-                    return;
-                }
-            }
-        }
-
-        try {
-            if (typeof fileUri.fsPath == 'undefined') {
-                return;
-            }
-            if (!fs.existsSync(fileUri.fsPath)) {
-                throw new Error('File not found.');
-            }
-            let getTargetFilename = async (): Promise<string> => {
-                // Compose a target filename
-                let targetFilename = fileUri.fsPath.replace('.glb', '.gltf');
-                if (!vscode.workspace.getConfiguration('glTF').get('alwaysOverwriteDefaultFilename')) {
-                    const options: vscode.SaveDialogOptions = {
-                        defaultUri: vscode.Uri.file(targetFilename),
-                        filters: {
-                            'glTF': ['gltf'],
-                            'All files': ['*']
-                        }
-                    };
-                    let uri = await vscode.window.showSaveDialog(options);
-                    if (!uri) {
-                        return null;
-                    }
-                    targetFilename = uri.fsPath;
-                }
-                return targetFilename;
-            }
-            let targetFilename = await ConvertGLBtoGltfLoadFirst(fileUri.fsPath, getTargetFilename);
-
-            if (targetFilename != null) {
-                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetFilename));
-            }
-        } catch (ex) {
-            vscode.window.showErrorMessage(ex.toString());
-        }
     }));
 
     //
     // Run the validator on an external file.
     //
-    context.subscriptions.push(vscode.commands.registerCommand('gltf.validateFile', async (fileUri) => {
-        if (typeof fileUri == 'undefined' || !(fileUri instanceof vscode.Uri) ||
-            !(fileUri.fsPath.endsWith('.glb') || fileUri.fsPath.endsWith('.gltf'))) {
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.validateFile', async (fileUri) => {
+        if (typeof fileUri === 'undefined' || !(fileUri instanceof vscode.Uri) ||
+            !(fileUri.fsPath.endsWith('.vrm') || fileUri.fsPath.endsWith('.vrmgltf') || fileUri.fsPath.endsWith('.vci') || fileUri.fsPath.endsWith('.vcigltf'))) {
             const options: vscode.OpenDialogOptions = {
                 canSelectMany: false,
                 openLabel: 'Validate',
                 filters: {
-                    'glTF Files': ['gltf', 'glb'],
+                    'Target Files': ['vrm','vrmgltf','vci','vcigltf'],
                     'All files': ['*']
                 }
             };
@@ -496,8 +382,8 @@ export function activate(context: vscode.ExtensionContext) {
         let path = '';
         const firstValidIndex = 1; // Because the path has a leading slash.
         for (let i = firstValidIndex; i < numPointerSegments; ++i) {
-            inAnimation = inAnimation || (jsonPointerSplit[i] == 'animations');
-            inSampler = inAnimation && (inSampler || (jsonPointerSplit[i] == 'samplers'));
+            inAnimation = inAnimation || (jsonPointerSplit[i] === 'animations');
+            inSampler = inAnimation && (inSampler || (jsonPointerSplit[i] === 'samplers'));
             result = result[jsonPointerSplit[i]];
             path += '/' + jsonPointerSplit[i];
         }
@@ -511,7 +397,7 @@ export function activate(context: vscode.ExtensionContext) {
     //
     // Import an animation for editing.
     //
-    context.subscriptions.push(vscode.commands.registerTextEditorCommand('gltf.importAnimation', async (te, t) => {
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand('vtool.importAnimation', async (te, t) => {
         if (!checkValidEditor()) {
             return;
         }
@@ -538,7 +424,7 @@ export function activate(context: vscode.ExtensionContext) {
             const accessorId = animationPointer.json[key];
             const accessor = glTF.accessors[accessorId];
             let data: ArrayLike<number> = [];
-            if (accessor != undefined) {
+            if (accessor !== undefined) {
                 data = getAccessorData(activeTextEditor.document.fileName, glTF, accessor);
             }
             animationPointer.json.extras[`vscode_gltf_${key}`] = Array.from(data);
@@ -548,7 +434,7 @@ export function activate(context: vscode.ExtensionContext) {
         const pointer = map.pointers[animationPointer.path];
 
         const tabSize = activeTextEditor.options.tabSize as number;
-        const space = activeTextEditor.options.insertSpaces ? (new Array(tabSize + 1).join(' ')) : '\t'
+        const space = activeTextEditor.options.insertSpaces ? (new Array(tabSize + 1).join(' ')) : '\t';
         let newJson = JSON.stringify(animationPointer.json, null, space);
         const newJsonLines = newJson.split(/\n/);
         const fullTab = new Array(5).join(space);
@@ -567,7 +453,7 @@ export function activate(context: vscode.ExtensionContext) {
     //
     // Export an editable animation.
     //
-    context.subscriptions.push(vscode.commands.registerTextEditorCommand('gltf.exportAnimation', async (te, t) => {
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand('vtool.exportAnimation', async (te, t) => {
         if (!checkValidEditor()) {
             return;
         }
@@ -596,14 +482,14 @@ export function activate(context: vscode.ExtensionContext) {
 
         const samplerType = animationPointer.json.extras.vscode_gltf_type;
         const components = AccessorTypeToNumComponents[samplerType];
-        let entriesPerComponent = animationPointer.json.interpolation == 'CUBICSPLINE' ? 3 : 1;
+        let entriesPerComponent = animationPointer.json.interpolation === 'CUBICSPLINE' ? 3 : 1;
 
         // Check if this is a multi-target morph animation.
         const animationIndex = +animationPointer.path.split('/')[2];
         const outerAnimation = glTF.animations[animationIndex];
         if (outerAnimation.channels && outerAnimation.channels[0]) {
             const firstChannel = outerAnimation.channels[0];
-            if (firstChannel.target && firstChannel.target.path == 'weights') {
+            if (firstChannel.target && firstChannel.target.path === 'weights') {
                 const animatedNode = glTF.nodes[firstChannel.target.node];
                 const animatedMesh = glTF.meshes[animatedNode.mesh];
                 const numTargets = animatedMesh.primitives[0].targets.length;
@@ -615,20 +501,20 @@ export function activate(context: vscode.ExtensionContext) {
             input: animationPointer.json.extras.vscode_gltf_input,
             output: animationPointer.json.extras.vscode_gltf_output
         };
-        if ((newData.input.length * components * entriesPerComponent) != newData.output.length) {
+        if ((newData.input.length * components * entriesPerComponent) !== newData.output.length) {
             vscode.window.showErrorMessage(`Number of input values (${newData.input.length}) does not equal output values (${newData.output.length / components / entriesPerComponent}).`);
             return;
         }
         delete animationPointer.json.extras.vscode_gltf_type;
         delete animationPointer.json.extras.vscode_gltf_input;
         delete animationPointer.json.extras.vscode_gltf_output;
-        if (Object.keys(animationPointer.json.extras).length == 0) {
+        if (Object.keys(animationPointer.json.extras).length === 0) {
             delete animationPointer.json.extras;
         }
 
         const inputAccessor = glTF.accessors[animationPointer.json.input];
         let bufferIndex = 0;
-        if (inputAccessor != undefined) {
+        if (inputAccessor !== undefined) {
             const bufferView = glTF.bufferViews[inputAccessor.bufferView];
             bufferIndex = bufferView.buffer;
         }
@@ -636,7 +522,7 @@ export function activate(context: vscode.ExtensionContext) {
         const bufferData = getBuffer(glTF, bufferIndex, activeTextEditor.document.fileName);
         const alignedLength = (value: number) => {
             const alignValue = 4;
-            if (value == 0) {
+            if (value === 0) {
                 return value;
             }
 
@@ -646,17 +532,17 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             return value + (alignValue - multiple);
-        }
+        };
         let bufferOffset = alignedLength(bufferData.length);
 
         const outputBuffers = [bufferData];
-        if (bufferOffset != bufferData.length) {
+        if (bufferOffset !== bufferData.length) {
             outputBuffers.push(new Buffer(bufferOffset - bufferData.length));
         }
 
         for (const accessorType of ['input', 'output']) {
             const values = newData[accessorType];
-            const accessorComponents = accessorType == 'input' ? 1 : components;
+            const accessorComponents = accessorType === 'input' ? 1 : components;
             const max = new Array(accessorComponents).fill(Number.NEGATIVE_INFINITY);
             for (let i = 0; i < values.length; i++) {
                 const j = i % accessorComponents;
@@ -672,13 +558,13 @@ export function activate(context: vscode.ExtensionContext) {
                 "bufferView": glTF.bufferViews.length,
                 "componentType": 5126,
                 "count": values.length / accessorComponents,
-                "type": accessorType == 'input' ? 'SCALAR' : samplerType,
+                "type": accessorType === 'input' ? 'SCALAR' : samplerType,
                 "max": max,
                 "min": min
             };
 
             const accessorId = animationPointer.json[accessorType];
-            if (glTF.accessors[accessorId] == undefined) {
+            if (glTF.accessors[accessorId] === undefined) {
                 animationPointer.json[accessorType] = glTF.accessors.length;
                 glTF.accessors.push(accessor);
             } else {
@@ -691,7 +577,7 @@ export function activate(context: vscode.ExtensionContext) {
                 "byteLength": float32Values.byteLength,
             };
             glTF.bufferViews.push(newBufferView);
-            if (alignedLength(float32Values.byteLength) != float32Values.byteLength) {
+            if (alignedLength(float32Values.byteLength) !== float32Values.byteLength) {
                 throw new Error('Float32Array not 4 byte length');
             }
             bufferOffset += float32Values.byteLength;
@@ -703,7 +589,7 @@ export function activate(context: vscode.ExtensionContext) {
         bufferJson.uri = 'data:application/octet-stream;base64,' + finalBuffer.toString('base64');
         bufferJson.byteLength = finalBuffer.length;
         const tabSize = activeTextEditor.options.tabSize as number;
-        const space = activeTextEditor.options.insertSpaces ? (new Array(tabSize + 1).join(' ')) : '\t'
+        const space = activeTextEditor.options.insertSpaces ? (new Array(tabSize + 1).join(' ')) : '\t';
         const newJson = JSON.stringify(glTF, null, space);
 
         const newRange = new vscode.Range(0, 0, activeTextEditor.document.lineCount + 1, 0);
@@ -725,6 +611,235 @@ export function activate(context: vscode.ExtensionContext) {
             gltfWindow.preview.updatePanel(event.document);
         }
     });
+
+    //
+    // Export the whole file and its dependencies to a binary VRM file.
+    //
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand('vtool.exportVrmFile', async (te, t) => {
+        if (!checkValidEditor()) {
+            return;
+        }
+
+        let gltfContent = te.document.getText();
+        let gltf: GLTF2.GLTF;
+        try {
+            gltf = JSON.parse(gltfContent);
+        } catch (ex) {
+            vscode.window.showErrorMessage(ex.toString());
+            return;
+        }
+        if (!gltf || !gltf.asset || !gltf.asset.version || gltf.asset.version[0] !== '2') {
+            vscode.window.showErrorMessage('Error: Only glTF 2.0 is supported for VRM export.');
+            return;
+        }
+
+        let editor = vscode.window.activeTextEditor;
+        let glbPath = editor.document.uri.fsPath.replace('.vrmgltf', '.vrm');
+        if (!vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename')) {
+            const options: vscode.SaveDialogOptions = {
+                defaultUri: vscode.Uri.file(glbPath),
+                filters: {
+                    'Binary VRM': ['vrm'],
+                    'All files': ['*']
+                }
+            };
+            let uri = await vscode.window.showSaveDialog(options);
+            if (uri !== undefined) {
+                try {
+                    ConvertToGLB(gltf, editor.document.uri.fsPath, uri.fsPath);
+                    vscode.window.showInformationMessage('VRM exported as: ' + uri.fsPath);
+                } catch (ex) {
+                    vscode.window.showErrorMessage(ex.toString());
+                }
+            }
+        } else {
+            try {
+                ConvertToGLB(gltf, editor.document.uri.fsPath, glbPath);
+                vscode.window.showInformationMessage('VRM exported as: ' + glbPath);
+            } catch (ex) {
+                vscode.window.showErrorMessage(ex.toString());
+            }
+        }
+    }));
+
+    //
+    // Export the whole file and its dependencies to a binary VCI file.
+    //
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand('vtool.exportVciFile', async (te, t) => {
+        if (!checkValidEditor()) {
+            return;
+        }
+
+        let gltfContent = te.document.getText();
+        let gltf: GLTF2.GLTF;
+        try {
+            gltf = JSON.parse(gltfContent);
+        } catch (ex) {
+            vscode.window.showErrorMessage(ex.toString());
+            return;
+        }
+        if (!gltf || !gltf.asset || !gltf.asset.version || gltf.asset.version[0] !== '2') {
+            vscode.window.showErrorMessage('Error: Only glTF 2.0 is supported for VCI export.');
+            return;
+        }
+
+        let editor = vscode.window.activeTextEditor;
+        let glbPath = editor.document.uri.fsPath.replace('.vcigltf', '.vci');
+        if (!vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename')) {
+            const options: vscode.SaveDialogOptions = {
+                defaultUri: vscode.Uri.file(glbPath),
+                filters: {
+                    'Binary VCI': ['vci'],
+                    'All files': ['*']
+                }
+            };
+            let uri = await vscode.window.showSaveDialog(options);
+            if (uri !== undefined) {
+                try {
+                    ConvertToGLB(gltf, editor.document.uri.fsPath, uri.fsPath);
+                    vscode.window.showInformationMessage('VCI exported as: ' + uri.fsPath);
+                } catch (ex) {
+                    vscode.window.showErrorMessage(ex.toString());
+                }
+            }
+        } else {
+            try {
+                ConvertToGLB(gltf, editor.document.uri.fsPath, glbPath);
+                vscode.window.showInformationMessage('VCI exported as: ' + glbPath);
+            } catch (ex) {
+                vscode.window.showErrorMessage(ex.toString());
+            }
+        }
+    }));
+
+    //
+    // Import of a VRM file and writing out its various chunks.
+    //
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.importVrmFile', async (fileUri) => {
+
+        if (typeof fileUri === 'undefined' || !(fileUri instanceof vscode.Uri) || !fileUri.fsPath.endsWith('.vrm')) {
+            if ((vscode.window.activeTextEditor !== undefined) &&
+                (vscode.window.activeTextEditor.document.uri.fsPath.endsWith('.vrm'))) {
+                fileUri = vscode.window.activeTextEditor.document.uri;
+            } else {
+                const options: vscode.OpenDialogOptions = {
+                    canSelectMany: false,
+                    openLabel: 'Import',
+                    filters: {
+                        'VRM Binary': ['vrm'],
+                        'All files': ['*']
+                    }
+                };
+
+                let openUri = await vscode.window.showOpenDialog(options);
+                if (openUri && openUri[0]) {
+                    fileUri = openUri[0];
+                } else {
+                    return;
+                }
+            }
+        }
+
+        try {
+            if (typeof fileUri.fsPath === 'undefined') {
+                return;
+            }
+            if (!fs.existsSync(fileUri.fsPath)) {
+                throw new Error('File not found.');
+            }
+            let getTargetFilename = async (): Promise<string> => {
+                // Compose a target filename
+                let targetFilename = fileUri.fsPath.replace('.vrm', '.vrmgltf');
+                if (!vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename')) {
+                    const options: vscode.SaveDialogOptions = {
+                        defaultUri: vscode.Uri.file(targetFilename),
+                        filters: {
+                            'VRM glTF': ['vrmgltf'],
+                            'All files': ['*']
+                        }
+                    };
+                    let uri = await vscode.window.showSaveDialog(options);
+                    if (!uri) {
+                        return null;
+                    }
+                    targetFilename = uri.fsPath;
+                }
+                return targetFilename;
+            };
+            let targetFilename = await ConvertGLBtoGltfLoadFirst(fileUri.fsPath, getTargetFilename);
+
+            if (targetFilename !== null) {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetFilename));
+            }
+        } catch (ex) {
+            vscode.window.showErrorMessage(ex.toString());
+        }
+    }));
+
+    //
+    // Import of a VCI file and writing out its various chunks.
+    //
+    context.subscriptions.push(vscode.commands.registerCommand('vtool.importVciFile', async (fileUri) => {
+
+        if (typeof fileUri === 'undefined' || !(fileUri instanceof vscode.Uri) || !fileUri.fsPath.endsWith('.vci')) {
+            if ((vscode.window.activeTextEditor !== undefined) &&
+                (vscode.window.activeTextEditor.document.uri.fsPath.endsWith('.vci'))) {
+                fileUri = vscode.window.activeTextEditor.document.uri;
+            } else {
+                const options: vscode.OpenDialogOptions = {
+                    canSelectMany: false,
+                    openLabel: 'Import',
+                    filters: {
+                        'VCI Binary': ['vci'],
+                        'All files': ['*']
+                    }
+                };
+
+                let openUri = await vscode.window.showOpenDialog(options);
+                if (openUri && openUri[0]) {
+                    fileUri = openUri[0];
+                } else {
+                    return;
+                }
+            }
+        }
+
+        try {
+            if (typeof fileUri.fsPath === 'undefined') {
+                return;
+            }
+            if (!fs.existsSync(fileUri.fsPath)) {
+                throw new Error('File not found.');
+            }
+            let getTargetFilename = async (): Promise<string> => {
+                // Compose a target filename
+                let targetFilename = fileUri.fsPath.replace('.vci', '.vcigltf');
+                if (!vscode.workspace.getConfiguration('vtool').get('alwaysOverwriteDefaultFilename')) {
+                    const options: vscode.SaveDialogOptions = {
+                        defaultUri: vscode.Uri.file(targetFilename),
+                        filters: {
+                            'VCI glTF': ['vcigltf'],
+                            'All files': ['*']
+                        }
+                    };
+                    let uri = await vscode.window.showSaveDialog(options);
+                    if (!uri) {
+                        return null;
+                    }
+                    targetFilename = uri.fsPath;
+                }
+                return targetFilename;
+            };
+            let targetFilename = await ConvertGLBtoGltfLoadFirst(fileUri.fsPath, getTargetFilename);
+
+            if (targetFilename !== null) {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetFilename));
+            }
+        } catch (ex) {
+            vscode.window.showErrorMessage(ex.toString());
+        }
+    }));
+
 }
 
 // This method is called when your extension is deactivated.

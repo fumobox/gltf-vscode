@@ -22,13 +22,13 @@ let documents: TextDocuments = new TextDocuments();
 documents.listen(connection);
 
 interface JsonMap {
-    data: any,
+    data: any;
     pointers: any;
-};
+}
 
 interface ParseResult {
-    jsonMap: JsonMap,
-    parseable: boolean
+    jsonMap: JsonMap;
+    parseable: boolean;
 }
 
 let documentsToHandle: Map<TextDocument, ParseResult> = new Map<TextDocument, ParseResult>();
@@ -59,7 +59,7 @@ function tryGetJsonMap(textDocument: TextDocument): JsonMap {
  */
 function isLocalGltf(textDocument: TextDocument): boolean {
     const lowerUri = textDocument.uri.toLowerCase();
-    return (lowerUri.startsWith('file:///') && lowerUri.endsWith('.gltf'));
+    return (lowerUri.startsWith('file:///') && (lowerUri.endsWith('.vrmgltf') || (lowerUri.endsWith('.vcigltf'))));
 }
 
 // After the server has started the client sends an initialize request. The server receives
@@ -74,11 +74,11 @@ connection.onInitialize((): InitializeResult => {
             // Tell the client we provide definitions
             definitionProvider: true,
         }
-    }
+    };
 });
 
 // The settings interface describe the server relevant settings part
-interface GltfSettings {
+interface VToolSettings {
     Validation: ValidatorSettings;
 }
 
@@ -90,13 +90,13 @@ interface ValidatorSettings {
     severityOverrides: object;
 }
 
-let currentSettings: GltfSettings;
+let currentSettings: VToolSettings;
 
 //
 // This is sent on server activation, and again for every configuration change.
 //
 connection.onDidChangeConfiguration((change) => {
-    currentSettings = <GltfSettings>change.settings.glTF;
+    currentSettings = <VToolSettings>change.settings.vtool;
     if (currentSettings.Validation.enable) {
         // Schedule revalidation of all open text documents using the new settings.
         documents.all().forEach(scheduleParsing);
@@ -316,7 +316,7 @@ function getDiagnostic(info: any, map: JsonMap): Diagnostic {
         severity: severity,
         range,
         message: info.message,
-        source: (info.isFromLanguageServer ? 'glTF Language Server' : 'glTF Validator')
+        source: (info.isFromLanguageServer ? 'VTool Language Server' : 'VTool Validator')
     };
 }
 
@@ -337,11 +337,11 @@ function getFromPath(glTF: any, path : string) {
 }
 
 interface PathData {
-    path: string,
-    start: Position,
-    end: Position,
-    jsonMap: JsonMap
-};
+    path: string;
+    start: Position;
+    end: Position;
+    jsonMap: JsonMap;
+}
 
 function getPath(textDocumentPosition: TextDocumentPositionParams): PathData {
     let hoverPos = textDocumentPosition.position;
@@ -390,13 +390,13 @@ connection.onDefinition((textDocumentPosition: TextDocumentPositionParams): Loca
 
     function makeLocation(position?: any, uri?: string) {
         let range: Range;
-        if (position == null) {
+        if (position === null) {
             range = Range.create(0, 0, 0, 0);
         } else {
             range = Range.create(document.positionAt(position.value.pos), document.positionAt(position.valueEnd.pos));
         }
 
-        if (uri == null) {
+        if (uri === null) {
             uri = textDocumentPosition.textDocument.uri;
         }
 
@@ -404,7 +404,7 @@ connection.onDefinition((textDocumentPosition: TextDocumentPositionParams): Loca
     }
 
     function makeDataUri(doc: TextDocumentPositionParams, path: string): string {
-        return 'gltf-dataUri:' + path + '#' + encodeURIComponent(Uri.parse(doc.textDocument.uri).fsPath);
+        return 'vtool-dataUri:' + path + '#' + encodeURIComponent(Uri.parse(doc.textDocument.uri).fsPath);
     }
 
     const firstValidIndex = 1; // Because the path has a leading slash.
@@ -418,7 +418,7 @@ connection.onDefinition((textDocumentPosition: TextDocumentPositionParams): Loca
         let part = pathSplit[i];
         currentPath += '/' + part;
         result = result[part];
-        if (typeof result != 'object')
+        if (typeof result !== 'object')
         {
             if (part === 'scene') {
                 return makeLocation(pathData.jsonMap.pointers['/scenes/' + result]);

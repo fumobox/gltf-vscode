@@ -263,7 +263,7 @@ function getVerticesNode(fileName: string, gltf: GLTF2.GLTF, attributes: { [name
             index: index,
             attributeNodes: attributeNodes
         };
-    };
+    }
 
     return {
         type: NodeType.Vertices,
@@ -377,18 +377,18 @@ function getPointNodes(numVertices: number, data: ArrayLike<number> | undefined)
             label: `${index}`,
             index: index,
             vertex: get(index)
-        }
+        };
     }
 
     return nodes;
 }
 
 function getIndicesNode(fileName: string, gltf: GLTF2.GLTF, numVertices: number, mode: GLTF2.MeshPrimitiveMode | undefined, indices: number | undefined): TrianglesNode | LinesNode | PointsNode {
-    if (mode == undefined) {
+    if (mode === undefined) {
         mode = GLTF2.MeshPrimitiveMode.TRIANGLES;
     }
 
-    const accessor = indices != undefined && gltf.accessors[indices];
+    const accessor = indices !== undefined && gltf.accessors[indices];
     const data = accessor && getAccessorData(fileName, gltf, accessor);
     switch (mode) {
         case GLTF2.MeshPrimitiveMode.TRIANGLES:
@@ -426,7 +426,7 @@ function getIconPath(context: vscode.ExtensionContext, name: string): { light: s
     return {
         light: context.asAbsolutePath(path.join('resources', 'light', `${name}.svg`)),
         dark: context.asAbsolutePath(path.join('resources', 'dark', `${name}.svg`))
-    }
+    };
 }
 
 export class GltfInspectData implements vscode.TreeDataProvider<Node> {
@@ -458,11 +458,11 @@ export class GltfInspectData implements vscode.TreeDataProvider<Node> {
             this.updateSelection(panel, this._treeView.selection);
         });
 
-        context.subscriptions.push(vscode.commands.registerCommand('gltfInspectData.copy', (node: Node) => {
+        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData..copy', (node: Node) => {
             vscode.env.clipboard.writeText(node.label);
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('gltfInspectData.copyAll', () => {
+        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData..copyAll', () => {
             let text = `${this._headerNode.label}${os.EOL}`;
 
             const traverseNodes = (nodes: Node[], indent: string) => {
@@ -470,7 +470,7 @@ export class GltfInspectData implements vscode.TreeDataProvider<Node> {
                     text += `${indent}${node.label}${os.EOL}`;
                     traverseNodes(this.getChildren(node, Number.MAX_VALUE), `  ${indent}`);
                 }
-            }
+            };
 
             traverseNodes(this._nodes, '');
 
@@ -493,7 +493,7 @@ export class GltfInspectData implements vscode.TreeDataProvider<Node> {
             // Add a noop command to stop the item from expanding when clicking on the item label.
             // See https://github.com/Microsoft/vscode/issues/34130#issuecomment-398783006.
             // The actual handling of selection is in onDidSelectionChange to support multiselect.
-            treeItem.command = { title: '', command: 'gltf.noop' };
+            treeItem.command = { title: '', command: 'vtool.noop' };
         }
 
         return treeItem;

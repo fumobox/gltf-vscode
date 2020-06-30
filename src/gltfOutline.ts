@@ -22,7 +22,7 @@ interface GltfNode {
 interface MeshInfo {
     size: number;
     vertices: number;
-};
+}
 
 export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
     private tree: GltfNode;
@@ -55,7 +55,7 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
         let treeItem: vscode.TreeItem = new vscode.TreeItem(name, treeState);
         if (node.range !== undefined) {
             treeItem.command = {
-                command: 'gltf.openGltfSelection',
+                command: 'vtool.openGltfSelection',
                 title: '',
                 arguments: [node.range]
             };
@@ -81,7 +81,7 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
         });
         vscode.window.onDidChangeTextEditorSelection(() => {
             this.fillSelectedList();
-            if (!this.pauseUpdate && vscode.workspace.getConfiguration('glTF').get('expandOutlineWithSelection')) {
+            if (!this.pauseUpdate && vscode.workspace.getConfiguration('vtool').get('expandOutlineWithSelection')) {
                 this._onDidChangeTreeData.fire();
             }
             this.pauseUpdate = false;
@@ -108,7 +108,7 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
 
     private fillSelectedList(): void {
         this.selectedList.clear();
-        if (this.tree && vscode.workspace.getConfiguration('glTF').get('expandOutlineWithSelection')) {
+        if (this.tree && vscode.workspace.getConfiguration('vtool').get('expandOutlineWithSelection')) {
             for (let selection of this.editor.selections) {
                 this.walkTree(this.tree, (node: GltfNode) => {
                     if (node.range && node.range.contains(selection)) {
@@ -429,7 +429,7 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
         };
         if (mesh.primitives) {
             for (let primitiveIndex = 0; primitiveIndex < mesh.primitives.length; primitiveIndex++) {
-                let primitiveInfo = this.createMeshPrimitive(mesh, meshIndex, primitiveIndex.toString(), meshObj, assetReport)
+                let primitiveInfo = this.createMeshPrimitive(mesh, meshIndex, primitiveIndex.toString(), meshObj, assetReport);
                 if (assetReport) {
                     meshInfo.size += primitiveInfo.size;
                     meshInfo.vertices += primitiveInfo.vertices;
@@ -622,7 +622,7 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
         if (set.size === 0) {
             return '';
         }
-        return ` (Skin${set.size == 1 ? '' : 's'} ${Array.from(set.values()).join(', ')})`;
+        return ` (Skin${set.size === 1 ? '' : 's'} ${Array.from(set.values()).join(', ')})`;
     }
 
     private getIcon(nodeType: GltfNodeType): any {
@@ -633,6 +633,6 @@ export class GltfOutline implements vscode.TreeDataProvider<GltfNode> {
         return {
             light: this.context.asAbsolutePath(path.join('resources', 'light', nodeType + '.svg')),
             dark: this.context.asAbsolutePath(path.join('resources', 'dark', nodeType + '.svg'))
-        }
+        };
     }
 }
