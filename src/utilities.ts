@@ -51,7 +51,7 @@ function buildArrayBuffer<T extends ArrayLike<number>>(typedArray: any, data: Ar
 
     const targetLength = count * numComponents;
 
-    if (byteStride === null || byteStride === numComponents * typedArray.BYTES_PER_ELEMENT) {
+    if (byteStride === undefined || byteStride === numComponents * typedArray.BYTES_PER_ELEMENT) {
         return new typedArray(data.buffer, byteOffset, targetLength);
     }
 
