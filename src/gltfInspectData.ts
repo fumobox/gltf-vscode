@@ -458,11 +458,11 @@ export class GltfInspectData implements vscode.TreeDataProvider<Node> {
             this.updateSelection(panel, this._treeView.selection);
         });
 
-        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData..copy', (node: Node) => {
+        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData.copy', (node: Node) => {
             vscode.env.clipboard.writeText(node.label);
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData..copyAll', () => {
+        context.subscriptions.push(vscode.commands.registerCommand('vtoolInspectData.copyAll', () => {
             let text = `${this._headerNode.label}${os.EOL}`;
 
             const traverseNodes = (nodes: Node[], indent: string) => {
