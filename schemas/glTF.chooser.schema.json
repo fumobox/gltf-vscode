@@ -6,9 +6,6 @@
     "oneOf" : [
         {
             "$ref" : "gltf-2.0/glTF.schema.json"
-        },
-        {
-            "$ref" : "gltf-1.0/glTF.schema.json"
         }
     ]
 }

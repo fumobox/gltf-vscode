@@ -13,7 +13,7 @@ var yargs = require('yargs');
 function parseArguments(args) {
     var argv = yargs
         .usage('Usage: node $0 -i inputPath -o outputPath')
-        .example('node $0 -i ../../gltf/specification/1.0/schema -o ../schemas/gltf-1.0')
+        .example('node $0 -i ../../gltf/specification/2.0/schema -o ../schemas/gltf-2.0')
         .help('h')
         .alias('h', 'help')
         .options({

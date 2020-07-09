@@ -1,8 +1,6 @@
 #!/bin/sh
 # Re-import all the schemas.
 # This presumes the glTF repo is at the same level as the gltf-vscode repo.
-echo "~~~ glTF 1.0 ~~~"
-./importSchema.js -i ../../glTF/specification/1.0/schema -o ../schemas/gltf-1.0
 echo "~~~ glTF 2.0 ~~~"
 ./importSchema.js -i ../../glTF/specification/2.0/schema -o ../schemas/gltf-2.0 -e extensionMap2.0.json
 echo "~~~ KHR_draco_mesh_compression ~~~"
