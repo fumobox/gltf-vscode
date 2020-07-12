@@ -51,6 +51,10 @@ export class DataUriTextDocumentContentProvider implements vscode.TextDocumentCo
         return !!jsonPointer.match(/^\/meshes\/\d+\/primitives\//);
     }
 
+    public isVciScripts(jsonPointer: string): boolean {
+        return jsonPointer.startsWith('/extensions/VCAST_vci_embedded_script');
+    }
+
     public async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
         const fileName = decodeURIComponent(uri.fragment);
         const query = querystring.parse<QueryDataUri>(uri.query);

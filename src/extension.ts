@@ -150,7 +150,10 @@ export function activate(context: vscode.ExtensionContext) {
         const isAccessor = dataPreviewProvider.isAccessor(jsonPointer);
         const isMeshPrimitive = dataPreviewProvider.isMeshPrimitive(jsonPointer);
 
-        if (!isImage && !isShader && !isAccessor && !isMeshPrimitive) {
+        // VCI
+        const isVciScripts = dataPreviewProvider.isVciScripts(jsonPointer);
+
+        if (!isImage && !isShader && !isAccessor && !isMeshPrimitive && !isVciScripts) {
             vscode.window.showErrorMessage('This feature currently works only with accessors, images, shaders, and mesh primitives.');
             console.log('vtool: No preview for: ' + jsonPointer);
             return;
@@ -182,6 +185,42 @@ export function activate(context: vscode.ExtensionContext) {
             const previewUri = vscode.Uri.parse(`${dataPreviewProvider.UriPrefix}${jsonPointer}?viewColumn=${vscode.ViewColumn.Two}#${encodeURIComponent(fileName)}`);
             await vscode.commands.executeCommand('vscode.open', previewUri, vscode.ViewColumn.Two);
             dataPreviewProvider.update(previewUri);
+        }
+
+        if(isVciScripts)
+        {
+            const parentPointer = truncateJsonPointer(jsonPointer, 2);
+            const parentData = getFromJsonPointer(map.data, parentPointer);
+            const entryPoint = parentData["entryPoint"];
+
+            const data = getFromJsonPointer(map.data, jsonPointer);
+            const scriptName = data["name"] + ".lua";
+            const source = data["source"];
+
+            const bufferView = map.data.bufferViews[source];
+
+            const uri = map.data.buffers[bufferView.buffer].uri;
+            const start = bufferView.byteOffset;
+            const end = start + bufferView.byteLength;
+
+            const dirName = path.dirname(fileName);
+
+            const src = fs.createReadStream(dirName + "\\" + uri, {
+                encoding: 'utf-8',
+                start: start,
+                end: end
+            });
+
+            src.on('data', chunk => {
+                const luaFileName = dirName + "\\" + scriptName;
+                const fd = fs.openSync(luaFileName, 'w+');
+                fs.writeSync(fd, chunk, 0, "utf-8");
+                fs.closeSync(fd);
+                vscode.workspace.openTextDocument(luaFileName).then(doc => {
+                    vscode.window.showTextDocument(doc, { preview: false });
+                });
+            });
+            return;
         }
     }));
 
