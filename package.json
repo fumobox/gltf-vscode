@@ -2,7 +2,7 @@
     "name": "vtool",
     "displayName": "VRM/VCI Tools",
     "description": "Tools for VRM and VCI 3D models",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "fumobox",
     "license": "Apache-2.0",
     "repository": {
