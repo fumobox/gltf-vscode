@@ -189,6 +189,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         if(isVciScripts)
         {
+            jsonPointer = truncateJsonPointer(jsonPointer, 4);
+
             const parentPointer = truncateJsonPointer(jsonPointer, 2);
             const parentData = getFromJsonPointer(map.data, parentPointer);
             const entryPoint = parentData["entryPoint"];
